@@ -1,0 +1,64 @@
+.container {
+  max-width: 1024px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.header {
+  margin-bottom: 18px;
+}
+
+.card {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+  background: #fff;
+}
+
+.form {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+input,
+select,
+button {
+  padding: 8px;
+  border: 1px solid #bbb;
+  border-radius: 6px;
+}
+
+button {
+  cursor: pointer;
+}
+
+.linkish {
+  border: none;
+  background: transparent;
+  color: #1864ab;
+  padding: 0;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.message {
+  background: #e7f5ff;
+  border: 1px solid #74c0fc;
+  color: #0b7285;
+  border-radius: 6px;
+  padding: 8px;
+}
