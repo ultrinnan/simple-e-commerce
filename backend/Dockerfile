@@ -7,7 +7,7 @@ RUN composer install --no-dev --no-interaction --no-progress --prefer-dist --opt
 FROM php:8.3-cli-alpine
 WORKDIR /var/www/html
 
-RUN apk add --no-cache bash sqlite libzip-dev oniguruma-dev \
+RUN apk add --no-cache bash sqlite-dev libzip-dev oniguruma-dev \
     && docker-php-ext-install pdo pdo_sqlite
 
 COPY --from=vendor /app/vendor ./vendor
