@@ -1,8 +1,11 @@
+version: "3.9"
+
 services:
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    container_name: simpl_backend
     restart: unless-stopped
     environment:
       APP_ENV: production
@@ -15,33 +18,36 @@ services:
       - backend_storage:/var/www/html/storage
       - backend_database:/var/www/html/database
     networks:
-      - app_net
-      - traefik_network # Assuming your Traefik network is named this
+      - default
+      - traefik-public
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.simpl-api.rule=Host(`api.simpl-e-commerce.fedirko.pro`)"
-      - "traefik.http.routers.simpl-api.entrypoints=websecure"
-      - "traefik.http.routers.simpl-api.tls=true"
-      - "traefik.http.routers.simpl-api.tls.certresolver=letsencrypt" # Use your actual resolver name
-      - "traefik.http.services.simpl-api.loadbalancer.server.port=80" # Or 8000 depending on your Dockerfile
+      - "traefik.docker.network=traefik-public"
+      - "traefik.http.routers.simpl-be.rule=Host(`api.simpl-e-commerce.fedirko.pro`)"
+      - "traefik.http.routers.simpl-be.entrypoints=websecure"
+      - "traefik.http.routers.simpl-be.tls.certresolver=le"
+      - "traefik.http.services.simpl-be.loadbalancer.server.port=80"
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        # Pass your API URL to React during build time
+        VITE_API_BASE_URL: https://api.simpl-e-commerce.fedirko.pro
+    container_name: simpl_frontend
     restart: unless-stopped
     depends_on:
       - backend
-    # Removed manual port mapping 8080:80
     networks:
-      - app_net
-      - traefik_network
+      - default
+      - traefik-public
     labels:
       - "traefik.enable=true"
+      - "traefik.docker.network=traefik-public"
       - "traefik.http.routers.simpl-fe.rule=Host(`simpl-e-commerce.fedirko.pro`)"
       - "traefik.http.routers.simpl-fe.entrypoints=websecure"
-      - "traefik.http.routers.simpl-fe.tls=true"
-      - "traefik.http.routers.simpl-fe.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.simpl-fe.tls.certresolver=le"
       - "traefik.http.services.simpl-fe.loadbalancer.server.port=80"
 
 volumes:
@@ -49,7 +55,6 @@ volumes:
   backend_database:
 
 networks:
-  app_net:
-    driver: bridge
-  traefik_network:
+  default:
+  traefik-public:
     external: true
