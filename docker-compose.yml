@@ -7,7 +7,7 @@ services:
     environment:
       APP_ENV: production
       APP_DEBUG: "false"
-      APP_URL: ${APP_URL:-https://shop.example.com}
+      APP_URL: https://api.simpl-e-commerce.fedirko.pro
       RUN_MIGRATIONS: "true"
       DB_CONNECTION: sqlite
       DB_DATABASE: /var/www/html/database/database.sqlite
@@ -16,6 +16,14 @@ services:
       - backend_database:/var/www/html/database
     networks:
       - app_net
+      - traefik_network # Assuming your Traefik network is named this
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.simpl-api.rule=Host(`api.simpl-e-commerce.fedirko.pro`)"
+      - "traefik.http.routers.simpl-api.entrypoints=websecure"
+      - "traefik.http.routers.simpl-api.tls=true"
+      - "traefik.http.routers.simpl-api.tls.certresolver=letsencrypt" # Use your actual resolver name
+      - "traefik.http.services.simpl-api.loadbalancer.server.port=80" # Or 8000 depending on your Dockerfile
 
   frontend:
     build:
@@ -24,10 +32,17 @@ services:
     restart: unless-stopped
     depends_on:
       - backend
-    ports:
-      - "${FRONTEND_PORT:-8080}:80"
+    # Removed manual port mapping 8080:80
     networks:
       - app_net
+      - traefik_network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.simpl-fe.rule=Host(`simpl-e-commerce.fedirko.pro`)"
+      - "traefik.http.routers.simpl-fe.entrypoints=websecure"
+      - "traefik.http.routers.simpl-fe.tls=true"
+      - "traefik.http.routers.simpl-fe.tls.certresolver=letsencrypt"
+      - "traefik.http.services.simpl-fe.loadbalancer.server.port=80"
 
 volumes:
   backend_storage:
@@ -36,3 +51,5 @@ volumes:
 networks:
   app_net:
     driver: bridge
+  traefik_network:
+    external: true
