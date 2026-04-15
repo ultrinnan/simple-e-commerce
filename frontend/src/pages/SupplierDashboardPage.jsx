@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react'
 import {
   Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Paper,
   Stack,
   Table,
@@ -29,6 +33,7 @@ function SupplierDashboardPage() {
   const [buyers, setBuyers] = useState([])
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(true)
+  const [isProductModalOpen, setIsProductModalOpen] = useState(false)
   const [form, setForm] = useState({
     name: '',
     description: '',
@@ -78,46 +83,45 @@ function SupplierDashboardPage() {
 
       setForm({ name: '', description: '', price: '', stock: '' })
       setEditingId(null)
+      setIsProductModalOpen(false)
       await loadProducts()
     } catch (err) {
       setError(err.message)
     }
   }
 
+  const openCreateModal = () => {
+    setEditingId(null)
+    setForm({ name: '', description: '', price: '', stock: '' })
+    setIsProductModalOpen(true)
+  }
+
+  const openEditModal = (product) => {
+    setEditingId(product.id)
+    setForm({
+      name: product.name,
+      description: product.description || '',
+      price: product.price,
+      stock: product.stock,
+    })
+    setIsProductModalOpen(true)
+  }
+
   return (
     <Stack spacing={3}>
       <ErrorState message={error} />
       <Paper sx={{ p: 3 }}>
-        <Typography variant="h6" gutterBottom>
-          {editingId ? 'Edit Product' : 'Create Product'}
-        </Typography>
-        <Stack component="form" spacing={2} onSubmit={submitProduct}>
-          <TextField
-            label="Name"
-            value={form.name}
-            onChange={(e) => setForm((v) => ({ ...v, name: e.target.value }))}
-          />
-          <TextField
-            label="Description"
-            value={form.description}
-            onChange={(e) =>
-              setForm((v) => ({ ...v, description: e.target.value }))
-            }
-          />
-          <TextField
-            label="Price"
-            type="number"
-            value={form.price}
-            onChange={(e) => setForm((v) => ({ ...v, price: e.target.value }))}
-          />
-          <TextField
-            label="Stock"
-            type="number"
-            value={form.stock}
-            onChange={(e) => setForm((v) => ({ ...v, stock: e.target.value }))}
-          />
-          <Button type="submit" variant="contained">
-            {editingId ? 'Update' : 'Create'}
+        <Stack
+          direction="row"
+          sx={{
+            width: '100%',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+        >
+          <Typography variant="h6">Products management</Typography>
+          <Button variant="contained" onClick={openCreateModal}>
+            Create new product
           </Button>
         </Stack>
       </Paper>
@@ -158,15 +162,7 @@ function SupplierDashboardPage() {
                 <TableCell align="right">
                   <Button
                     size="small"
-                    onClick={() => {
-                      setEditingId(product.id)
-                      setForm({
-                        name: product.name,
-                        description: product.description || '',
-                        price: product.price,
-                        stock: product.stock,
-                      })
-                    }}
+                    onClick={() => openEditModal(product)}
                   >
                     Edit
                   </Button>
@@ -231,6 +227,51 @@ function SupplierDashboardPage() {
           </TableBody>
         </Table>
       </Paper>
+
+      <Dialog
+        open={isProductModalOpen}
+        onClose={() => setIsProductModalOpen(false)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>{editingId ? 'Edit product' : 'Create new product'}</DialogTitle>
+        <Stack component="form" spacing={2} onSubmit={submitProduct}>
+          <DialogContent sx={{ pb: 0 }}>
+            <Stack spacing={2}>
+              <TextField
+                label="Name"
+                value={form.name}
+                onChange={(e) => setForm((v) => ({ ...v, name: e.target.value }))}
+              />
+              <TextField
+                label="Description"
+                value={form.description}
+                onChange={(e) =>
+                  setForm((v) => ({ ...v, description: e.target.value }))
+                }
+              />
+              <TextField
+                label="Price"
+                type="number"
+                value={form.price}
+                onChange={(e) => setForm((v) => ({ ...v, price: e.target.value }))}
+              />
+              <TextField
+                label="Stock"
+                type="number"
+                value={form.stock}
+                onChange={(e) => setForm((v) => ({ ...v, stock: e.target.value }))}
+              />
+            </Stack>
+          </DialogContent>
+          <DialogActions sx={{ p: 2 }}>
+            <Button onClick={() => setIsProductModalOpen(false)}>Cancel</Button>
+            <Button type="submit" variant="contained">
+              {editingId ? 'Update' : 'Create'}
+            </Button>
+          </DialogActions>
+        </Stack>
+      </Dialog>
     </Stack>
   )
 }

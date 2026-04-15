@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import {
-  Box,
+  Alert,
   Button,
   Paper,
+  Snackbar,
   Stack,
   Table,
   TableBody,
@@ -14,31 +15,26 @@ import {
 import { getCatalogProducts } from '@/api/catalogApi'
 import {
   addCartItem,
-  checkout,
-  deleteCartItem,
-  getCart,
   getOrders,
-  updateCartItem,
 } from '@/api/customerApi'
 import EmptyState from '@/components/ui/EmptyState'
 import ErrorState from '@/components/ui/ErrorState'
 import LoadingState from '@/components/ui/LoadingState'
 import { useAuth } from '@/hooks/useAuth'
 
-function CustomerDashboardPage() {
+function CustomerDashboardPage({ onCartChanged, refreshKey = 0 }) {
   const { authHeaders } = useAuth()
   const [products, setProducts] = useState([])
-  const [cart, setCart] = useState({ items: [] })
   const [orders, setOrders] = useState([])
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(true)
+  const [cartSnackbar, setCartSnackbar] = useState({
+    open: false,
+    message: '',
+  })
 
   async function loadProducts() {
     setProducts(await getCatalogProducts())
-  }
-
-  async function loadCart() {
-    setCart(await getCart(authHeaders))
   }
 
   async function loadOrders() {
@@ -49,7 +45,7 @@ function CustomerDashboardPage() {
     const run = async () => {
       try {
         setIsLoading(true)
-        await Promise.all([loadProducts(), loadCart(), loadOrders()])
+        await Promise.all([loadProducts(), loadOrders()])
       } catch (err) {
         setError(err.message)
       } finally {
@@ -58,15 +54,26 @@ function CustomerDashboardPage() {
     }
     run()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  const cartTotal = (cart.items || []).reduce(
-    (sum, item) => sum + Number(item.product?.price || 0) * item.quantity,
-    0,
-  )
+  }, [refreshKey])
 
   return (
     <Stack spacing={3}>
+      <Snackbar
+        open={cartSnackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setCartSnackbar((s) => ({ ...s, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={() => setCartSnackbar((s) => ({ ...s, open: false }))}
+          severity="success"
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {cartSnackbar.message}
+        </Alert>
+      </Snackbar>
+
       <ErrorState message={error} />
       <Paper sx={{ p: 3 }}>
         <Typography variant="h6" gutterBottom>
@@ -110,7 +117,11 @@ function CustomerDashboardPage() {
                       setError('')
                       try {
                         await addCartItem(authHeaders, product.id)
-                        await loadCart()
+                        await onCartChanged?.()
+                        setCartSnackbar({
+                          open: true,
+                          message: `Added “${product.name}” to cart`,
+                        })
                       } catch (err) {
                         setError(err.message)
                       }
@@ -123,97 +134,6 @@ function CustomerDashboardPage() {
             ))}
           </TableBody>
         </Table>
-      </Paper>
-
-      <Paper sx={{ p: 3 }}>
-        <Typography variant="h6" gutterBottom>
-          Cart
-        </Typography>
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell>Product</TableCell>
-              <TableCell>Qty</TableCell>
-              <TableCell>Price</TableCell>
-              <TableCell align="right">Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={4}>
-                  <LoadingState label="Loading cart..." />
-                </TableCell>
-              </TableRow>
-            ) : null}
-            {!isLoading && (cart.items || []).length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={4}>
-                  <EmptyState label="Your cart is empty." />
-                </TableCell>
-              </TableRow>
-            ) : null}
-            {(cart.items || []).map((item) => (
-              <TableRow key={item.id}>
-                <TableCell>{item.product?.name}</TableCell>
-                <TableCell>{item.quantity}</TableCell>
-                <TableCell>${Number(item.product?.price || 0).toFixed(2)}</TableCell>
-                <TableCell align="right">
-                  <Button
-                    size="small"
-                    onClick={async () => {
-                      setError('')
-                      try {
-                        await updateCartItem(authHeaders, item.id, item.quantity + 1)
-                        await loadCart()
-                      } catch (err) {
-                        setError(err.message)
-                      }
-                    }}
-                  >
-                    +
-                  </Button>
-                  <Button
-                    size="small"
-                    onClick={async () => {
-                      setError('')
-                      try {
-                        if (item.quantity > 1) {
-                          await updateCartItem(authHeaders, item.id, item.quantity - 1)
-                        } else {
-                          await deleteCartItem(authHeaders, item.id)
-                        }
-                        await loadCart()
-                      } catch (err) {
-                        setError(err.message)
-                      }
-                    }}
-                  >
-                    -
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-        <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between' }}>
-          <Typography>Total: ${cartTotal.toFixed(2)}</Typography>
-          <Button
-            variant="contained"
-            onClick={async () => {
-              setError('')
-              try {
-                await checkout(authHeaders)
-                await loadCart()
-                await loadOrders()
-              } catch (err) {
-                setError(err.message)
-              }
-            }}
-          >
-            Checkout
-          </Button>
-        </Box>
       </Paper>
 
       <Paper sx={{ p: 3 }}>

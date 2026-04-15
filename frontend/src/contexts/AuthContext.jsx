@@ -37,16 +37,22 @@ function AuthProvider({ children }) {
 
   const authRequest = async (mode, role, formData) => {
     if (mode === 'register') {
-      await register({ ...formData, role })
-      return { shouldLogin: false, userRole: role }
+      const authData = await register({ ...formData, role })
+      saveSession(authData)
+      return { shouldLogin: true, userRole: authData.user.role, mode }
     }
 
     const authData = await login(formData)
     if (authData.user.role !== role) {
-      throw new Error(`This account belongs to ${authData.user.role}`)
+      return {
+        shouldLogin: false,
+        wrongRoleRedirect: true,
+        actualRole: authData.user.role,
+        mode,
+      }
     }
     saveSession(authData)
-    return { shouldLogin: true, userRole: authData.user.role }
+    return { shouldLogin: true, userRole: authData.user.role, mode }
   }
 
   return (

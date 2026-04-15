@@ -124,3 +124,85 @@ Vite proxy is configured, so frontend calls `/api/*` and forwards to backend.
 - Pagination/search/sorting for catalog
 - Inventory reservation strategy and payment integration
 - Docker and hosted deployment pipeline
+
+## Deploy on VPS with Docker
+
+This repository now includes production Docker setup:
+
+- `backend/Dockerfile` - Laravel app container (SQLite by default)
+- `backend/docker/entrypoint.sh` - boot script (`key:generate`, `migrate --force`, cache)
+- `frontend/Dockerfile` - Vite build + nginx runtime
+- `frontend/docker/nginx.conf` - SPA routing + `/api/*` proxy to backend container
+- `docker-compose.yml` - launches both services
+
+### 1) Clone on VPS
+
+```bash
+mkdir -p /opt/simple-e-commerce
+cd /opt/simple-e-commerce
+git clone <YOUR_REPO_URL> .
+```
+
+### 2) Optional: configure backend `.env`
+
+The backend container auto-creates `.env` from `.env.example` if missing.
+If you need custom values, create `backend/.env` before first start:
+
+```bash
+cp backend/.env.example backend/.env
+```
+
+Recommended production values:
+
+- `APP_ENV=production`
+- `APP_DEBUG=false`
+- `APP_URL=https://shop.your-domain.com`
+
+For SQLite (default in this setup), keep:
+
+- `DB_CONNECTION=sqlite`
+- `DB_DATABASE=/var/www/html/database/database.sqlite`
+
+### 3) Start containers
+
+```bash
+docker compose up -d --build
+```
+
+App endpoints after start:
+
+- Frontend container: `http://<server-ip>:8080` (or your custom `FRONTEND_PORT`)
+- Backend container: internal only, reached via frontend nginx `/api`
+
+### 4) Put behind your existing reverse proxy
+
+If you already run Nginx Proxy Manager / Traefik / nginx in Docker:
+
+- Route `shop.your-domain.com` to this app's frontend container (`:8080`)
+- Enable HTTPS certificate for the domain
+
+You do **not** need a separate public API domain in this setup, because frontend nginx already proxies:
+
+- `https://shop.your-domain.com/api/*` -> `backend:8000/api/*`
+
+This avoids CORS complexity and works with the current frontend API calls.
+
+### 5) Updating after new commits
+
+```bash
+git pull
+docker compose up -d --build
+```
+
+### 6) Helpful commands
+
+```bash
+docker compose logs -f
+docker compose ps
+docker compose exec backend php artisan migrate --force
+```
+
+### Optional: separate API domain
+
+If you prefer `api.shop.your-domain.com`, set `VITE_API_BASE_URL` at frontend build time and route that domain to backend directly.
+The frontend now supports this via `VITE_API_BASE_URL` in `frontend/src/api/httpClient.js`.

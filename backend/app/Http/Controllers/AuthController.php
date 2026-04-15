@@ -18,9 +18,11 @@ class AuthController extends Controller
             'role' => ['required', 'in:supplier,customer'],
         ]);
 
+        $email = strtolower(trim($validated['email']));
+
         $user = User::create([
             'name' => $validated['name'],
-            'email' => $validated['email'],
+            'email' => $email,
             'password' => $validated['password'],
             'role' => $validated['role'],
         ]);
@@ -37,10 +39,11 @@ class AuthController extends Controller
             'password' => ['required', 'string'],
         ]);
 
-        $user = User::where('email', $validated['email'])->first();
+        $email = strtolower(trim($validated['email']));
+        $user = User::where('email', $email)->first();
 
         if (!$user || !Hash::check($validated['password'], $user->password)) {
-            return response()->json(['message' => 'Invalid credentials'], 422);
+            return response()->json(['message' => 'Invalid credentials'], 401);
         }
 
         $token = $user->createToken('auth-token')->plainTextToken;
